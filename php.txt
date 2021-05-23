@@ -1,0 +1,53 @@
+-------PHP7.2-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+apt-get install ca-certificates lsb-release apt-transport-https
+wget https://packages.sury.org/php/apt.gpg
+apt-key add apt.gpg
+echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.s/php7.list
+apt-get update
+apt-get install php7.2 php7.2-mysql
+
+
+-------wordpress-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+cd /home/site/wordpress
+wget https://wordpress.org/latest.zip
+apt-get install unzip
+unzip latest.zip
+
+
+-------www ke database-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+cd /home/site/www
+nano index.php
+
+<?php
+$servername = "localhost";
+$database = "UKK_nama";
+$username = "nama";
+$password = "password";
+
+$conn = mysqli_connect($servername, $username, $password, $database);
+if (!$conn) {
+	die("koneksi gagal: " . mysqli_connect_correct());
+}
+echo "koneksi berhasil";
+mysqli_close($conn);
+?>
+
+atau
+
+<?php
+$servername = "localhost";
+$database = "UKK_nama";
+$username = "nama";
+$password = "password";
+
+$conn = mysqli_connect($servername, $username, $password, $database);
+if (!$conn) {
+	die("koneksi gagal: " . mysqli_connect_error());
+}
+echo "koneksi berhasil";
+mysqli_close($conn);
+?>
+
