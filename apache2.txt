@@ -1,0 +1,246 @@
+BAGIAN 1 (Koneksi router ke internet, dll)
+-	Menggunakan Contoh IP 192.168.111.6 Ya anak anak :)
+-	Ganti identity (R_Absen_Nama) , Buat password di System-User(optional)
+-	Ganti nama interfaces (ether1-internet , ether2-server , wlan1-LAN)
+-	Buat dhcp isp di DHCP Client pilih (ether1-internet) 
+-	Login ke terminal ping (8.8.8.8 , google.com)
+-	Menambahkan IP Address utk server di IP-Addresses (192.168.111.1/29 , ether2-server) (10.11.11.1/28 , wlan1-LAN) */29=248 , /28=240
+-	Mengkonfigurasi WLAN di Wireless. (mode: ap bridge , ssid: nama-SiswaSMKTIP) Serta membuat password di Security Profiles (tambahkan profile1 , isi password: smktipjuara) Lalu ubah security profilenya menjadi profile1 
+-	Konfigurasi NAT. di IP-Firewall-NAT (Chain:srcnat , Out.Interface:ether1-internet , Action:masqerade)
+-	Buat DHCP untuk IP Server di DHCP Setup (buat untuk ether2-server dan wlan1-LAN) 
+	*Di DHCP Server pilih Network lalu klik ip server dan tambahkan
+	(Address: 192.168.111.0/29 , Gateway: 192.168.111.1 , DNS Servers: 192.168.111.6 tambahkan dibawahnya 9.9.9.9)
+-	Menghubungkan PC kita ke internet. (192.168.111.2 , 255.255.255.248 , 192.168.111.1 (ip pc)) (9.9.9.9(dns)) Ping di client lewat cmd
+-	Di server setting. (Network: Bridge Adapter , Bridge kan ke LAN Adapter)
+-	Install Server (option instalasi) *optional
+Cd = no
+Participate package survey = no
+*standard system
+Install grup boot lader = yes
+# apt-cdrom add 
+# apt-get update
+
+BAGIAN 2 (SSH)
+-	Setting IP Server menjadi 	
+# The loopback network interface
+auto enp0s3
+iface enp0s3 inet dhcp	
+restart ip server
+-	apt-get install openssh-server
+-	ss -tulpn | grep 22 (melihat port ssh)
+-	cd /etc/ssh
+nano sshd_config
+ 	#port 22 				menjadi	port 2222
+	#PermitRootLogin prohibit-password	menjadi	PermitRootLogin no	
+/etc/init.d/ssh restart
+-	Masuk ke puty (masukkan ip server port 22 , port 2222 , login as: root ‘denied’)
+-	Konfigurasi selanjutnya menggunakan putty
+
+BAGIAN 3 (NTP)
+-	apt-get install ntpdate
+sinkronisasikan server kita ke internet.
+# ntpdate 0.debian.pool.ntp.org
+# date
+-	apt-get install ntp
+ 	# nano /etc/ntp.conf
+Scroll ke yang paling bawah setelah #broadcastclient tambahkan
+
+#local
+server 127.127.1.0
+fudge 127.127.1.0 stratum 1
+
+restrict 192.168.111.0 mask 255.255.255.248 nomodify notrap
+restrict 10.11.0.0 mask 255.255.255.240 nomodify notrap	
+
+	/etc/init.d/ntp restart
+-	ntpq -p
+-	atur waktu di Region - Date and Time – Internet Time – Masukkan IP Server kita – Update now
+
+BAGIAN 4 (DNS)
+-	# apt-get install bind9
+# cd /etc/bind
+# nano named.conf.options
+   	hilangkan tanda // dari ‘forwarders’
+      	ubah 0.0.0.0 menjadi 9.9.9.9
+   	*tambahkan tanda // dari ‘dnssec-validation auto;’	
+	*tambahkan di paling bawah setelah listen-on-v6 { any; };
+
+		recursion yes;
+
+		allow-query{192.168.111.0/29; 10.11.0.0/28;};	
+-	/etc/init.d/bind9 restart
+-	nano /etc/resolv.conf
+	search nama-smktip.tkj
+	nameserver 192.168.111.6
+	nameserver 9.9.9.9
+*nslookup ke google.com di putty
+*ubah ip DNS di PC menjadi IP Server 192.168.111.6 
+*buka cmd lalu nslookup ke google.com			
+-	# cat named.conf.default-zones
+(untuk melihat syntax lalu copy (localhost dan 127.in-addr.arpa))
+-	masuk ke # nano named.conf.local
+pastekan dibawah //include
+-	Edit menjadi 
+zone “nama-smktip.tkj” {
+	type master;
+	file “/etc/bind/db.nama”;
+};
+
+zone “111.168.192.in-addr.arpa” {
+	type master;
+	file “/etc/bind/db.ip”;
+};
+-	# cp db.local db.nama
+# cp db.127 db.ip
+-	nano db.nama
+ns.nama-smktip.tkj. me.nama-smktip.tkj. (
+	@	IN	NS	ns.nama-smktip.tkj.
+	@	IN	A	192.168.111.6
+	ns	IN	A	192.168.111.6
+	www	IN	A	192.168.111.6
+	ftp	IN	CNAME	www
+	blog	IN	CNAME	www
+-	nano db.ip
+ns.nama-smktip.tkj. me.nama-smktip.tkj. (
+	@	IN	NS	ns.nama-smktip.tkj.
+	6	IN	PTR	ns.nama-smktip.tkj.
+	6	IN	PTR	www.nama-smktip.tkj.
+	6	IN	PTR	ftp.nama-smktip.tkj.
+	6	IN	PTR	blog.nama-smktip.tkj. 
+-	# named -checkconf
+-	/etc/init.d/bind9 restart
+-	apt-get install dnsutils
+nslookup nama-smktip.tkj dan google.com (di putty dan cmd PC)
+
+BAGIAN 5 (FTP)
+-	# apt-get install vsftpd
+-	#nano /etc/vsftpd.conf
+local_enable=YES
+write_enable=YES	(hilangkan tanda # nya)
+-	/etc/init.d/vsftpd restart
+-	# adduser site
+Pass: 123
+Full Name {} : Site Administrator
+-	Masuk ke winscp mode FTP
+Hostname: 192.168.111.6 atau ftp.nama-smktip.tkj
+User name: site		pass: 123
+-	Klik kanan buat directory/create folder www dan juga blog
+-	Klik kanan folder www – properties – klik ketiga R W X sehingga octalnya menjadi 0777
+-	Klik kanan folder blog – properties – klik ketiga R W X sehingga octalnya menjadi 0777
+-	Masuk ke # cd /home/site
+                 # ls	
+(akan muncul ke2 folder yg baru dibuat)
+
+BAGIAN 6 (DATABASE SERVER)
+-	# nano /etc/apt/sources.list
+-	Hilangkan tanda # dari 
+deb http://deb.debian dst
+deb-src http://deb.debian dst
+(berada di paling bawah)
+	setelah itu.. copy ke 2 syntax yg dihilangkan tanda # tadi, paste di bawahnya.
+	hilangkan tulisan -updates di ke 2 syntax yg tadi di paste.
+	lalu, tulis ‘non free’ di belakng syntaxnya/setelah main contrib (ke 4 syntax yg paling bawah)
+-	Masih ditempat konfigurasi yg sama 
+deb http://security dst
+deb-src http://security dst
+(jika ke 2 syntax tsb ada # hilangkan tanda # nya , lalu tuliskan ‘non free’ dibelakang syntax nya
+#apt-get update
+-	#apt-get install mariadb-server mariadb-client
+-	#myql_secure_installation
+Di option ‘Enter current pass root’ enter saja
+Di option ‘set root pass’ buat pass ‘root’ lalu klik y
+Di option ‘new pass’ buat pass ‘123’
+	Change the root password? [Y/n] n
+	Remove anonymous users? [Y/n] y
+	Disallow root login remotely? [Y/n] y
+	Remove test database and access to it? [Y/n] y 
+	Reload privilege tables now? [Y/n] y
+-	#mysql -u root -p 
+Enter pass 123
+(masukkan syntax berikut)
+<none> show databases;
+<none> DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');	*optional
+<none> FLUSH PRIVILEGES;	*optional
+<none> CREATE DATABASE UKK_nama;
+<none> CREATE USER 'nama'@'localhost' IDENTIFIED BY '123456';
+<none> GRANT ALL PRIVILEGES ON UKK_nama.* TO 'nama'@'localhost';
+<none> FLUSH PRIVILEGES;
+<none> use UUK_nama
+
+BAGIAN 7 (WEB SERVER)
+-	Installkan aplikasi berikut:
+# apt install ca-certificates apt-transport-https
+# wget https://packages.sury.org/php/apt.gpg
+# apt-key add apt.gpg
+# echo "deb https://packages.sury.org/php/ stretch main" | tee /etc/apt/sources.list.d/php7.list
+(jika tidak bisa diinstall, copykan ‘deb https://packages.sury.org/php/ stretch main’ di sources list. copykan ke yg paling bawah
+# apt-get update
+# apt install apache2 libapache2-mod-php7.2 php7.2 php7.2-cli php7.2-common php7.2-opcache php7.2-curl hp7.2-mbstring php7.2-mysql php7.2-zip php7.2-xml php7.2-gd php7.2-intl php-imagick
+-	# php -v
+# cd /etc/apache2/sites-available/
+# cp 000-default.conf www.conf
+# nano www.conf
+	Buat dibawah #ServerName www.example.com
+	ServerName www.nama-smktip.tkj
+	ServerAdmin me@nama-smktip.tkj
+	DocumentRoot /home/site/www
+# cp www.conf blog.conf
+# nano blog.conf
+	ServerName blog.nama-smktip.tkj
+	ServerAdmin me@nama-smktip.tkj
+	DocumentRoot /home/site/blog
+-	Masukkan syntax berikut, lalu pastekan ke nano www.conf (ke yg paling bawah)
+
+<Directory "/home/site/www">
+    Options Indexes MultiViews
+    AllowOverride None
+    Require all granted
+</Directory>
+(Buat juga untuk yg blog.conf dan ubah /home/site/www menjadi /home/site/blog)
+-	#a2ensite www
+#a2ensite blog
+#a2dissite 000-default.conf
+#/etc/init.d apache2 restart
+-	Masuk ke winscp
+Masuk ke folder www – klik kanan buat file index.php – buat syntax berikut:
+
+<?php
+	Echo “ini halaman www”
+>?
+(buat juga untuk folder blognya)
+-	Buka blog.nama-smktip.tkj/ dan www.nama-smktip.tkj/ (di chrome desktop)
+
+BAGIAN 8 (WORDPRESS)
+-	Masuk ke www (bisa lewat winscp)
+Edit file index.php seperti dibawah:
+
+<?php
+$servername = “locaclhost”;
+$database = “UKK_nama”;
+$username = “nama”;
+$password = “123456”;
+$conn – mysqli_connect ($servername, $username, $password, $database);
+if (!$conn) {
+    die (“koneksi berhasil” . mysqli_connect_error());
+}
+echo “koneksi berhasil”;
+mysqli_close($conn);
+?> 
+-	Masuk ke blog (lewat winscp)
+Drag and drop(pindahkan/copykan) isi file wordpress ke dalam folder blog
+-	Klik kanan pada folder blog - properties – centang/checklist (set group owner and permissions recursively)
+-	Masuk ke blog.nama-smktip.tkj/
+Let’s go
+Database Name = UKK_nama , Username = nama , Password = 123456 , 
+Database Host = localhost , Table Prefix = wp_
+	Submit – Run the installation 
+Site Title = Blog Nama
+Username = nama
+Password = 123456
+Your Email = me@nama-smktip.tkj
+	Install
+
+BAGIAN 9 (KONFIG LAN)
+-	Di winbox
+-	Masuk ke IP – DNS – Isi ip Servers = 192.168.111.6 
+-	Masuk ke DNS Server – Di dhcp setup(wlan1-LAN) – di DNS Serversnya masukkan IP 192.168.111.6 tambahkan dibawahnya 9.9.9.9
