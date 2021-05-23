@@ -1,0 +1,26 @@
+1. install python version 3.3
+2.apt-get install --reinstall build-essential
+3.
+cd /tmp
+git clone https://github.com/jarun/googler.git
+cd googler
+sudo make install
+cd auto-completion/bash/
+sudo cp googler-completion.bash /etc/bash_completion.d/
+
+==========================how to==============================
+Run the following command in terminal:
+googler
+
+enter ? for available commands on omniprompt.
+
+From the omniprompt, enter any search phrases to initiate the search.
+You can then enter n or p to navigate next or previous page of search results.
+
+To open any search result in a browser window, just enter the index number of that result. Or you can open the search page itself by entering "o" .
+
+If you want to search pages from a specific site, run googler with w {domain} argument: googler -w itsfoss.com
+
+Manual Page: Run the following command for Googler manual page equipped with various examples: man googler
+
+Googler can also be integrated with a text-based browser ( like – elinks, links, lynx, w3m etc.), so that you wouldn’t even need to leave the terminal for browsing web pages
